@@ -58,7 +58,6 @@ async function login(req: Request, res: Response, next: NextFunction) {
 	console.log("/api/identity/login");
 	const userLoginData: User = req.body;
 	console.log(userLoginData);
-	res.sendStatus(401);
 
 	try {
 		const {value, error} = loginValidation(userLoginData);
