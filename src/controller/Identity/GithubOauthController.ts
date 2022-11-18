@@ -48,6 +48,8 @@ async function githubOauthLoginSuccess(req: Request, res: Response, next: NextFu
 
 	console.log(accessToken, redirectUrl);
 
+	res.redirect(redirectUrl);
+
 	try {
 
 		let response;
