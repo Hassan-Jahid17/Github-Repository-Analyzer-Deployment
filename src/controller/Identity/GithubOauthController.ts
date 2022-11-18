@@ -36,7 +36,7 @@ async function githubOauthLogin(req: Request, res: Response, next: NextFunction)
 		console.log("accessToken");
 		console.log(accessToken);
 		
-		res.redirect(`${process.env.APP_URL}/github/success?token=${accessToken}&redirectUrl=${redirectUrl}`)
+		res.redirect(`/api/identity/github/success?token=${accessToken}&redirectUrl=${redirectUrl}`)
 	}catch(e) {
 		console.log("Error occured");
 		console.log(e);
