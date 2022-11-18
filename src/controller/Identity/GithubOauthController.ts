@@ -22,8 +22,6 @@ async function githubOauthLogin(req: Request, res: Response, next: NextFunction)
 
 	console.log(requestToken, redirectUrl);
 
-	res.sendStatus(200);
-
 
 	try {
 		const response = await axios.post(`https://github.com/login/oauth/access_token?client_id=${process.env.GITHUB_OAUTH2_CLIENT_ID}&client_secret=${process.env.GITHUB_OAUTH2_CLIENT_SECRET}&code=${requestToken}`, {
@@ -34,6 +32,9 @@ async function githubOauthLogin(req: Request, res: Response, next: NextFunction)
 
 
 		let accessToken = qs.parse(response.data).access_token;
+
+		console.log("accessToken");
+		console.log(accessToken);
 		
 		res.redirect(`${process.env.APP_URL}/github/success?token=${accessToken}&redirectUrl=${redirectUrl}`)
 	}catch(e) {
