@@ -6,7 +6,7 @@ import { getRepositoryInfoFromRepositoriesTab } from '../../services/shared/repo
 import { RepositoryItem, SearchRepositoryTimelineConfiguration } from '../../models/interfaces/SearchRepository';
 
 
-export async function findRepositoryOfTwoUsers(users: SearchRepositoryTimelineConfiguration[],githubAuthToken: any): Promise<any> {
+export async function findRepositoryOfTwoUsers(users: SearchRepositoryTimelineConfiguration[],githubAuthToken: any) {
 	
 	console.log("Search Users is");
 	console.log(users);
@@ -20,78 +20,114 @@ export async function findRepositoryOfTwoUsers(users: SearchRepositoryTimelineCo
 		timeout: 10000,
 	};
 
-	for(let user of users) {
-		axiosList.push(axios.get(`https://github.com/${user.UserName}?page=${ceil((user.StartFrom + 1)/30)}&tab=repositories`, config));
+	let response: any[] = [];
+	let userRepos: RepositoryItem[] = [];
+
+	try{
+		for(let user of users) {
+			axiosList.push(axios.get(`https://github.com/${user.UserName}?page=${ceil((user.StartFrom + 1)/30)}&tab=repositories`, config));
+		}
+	}catch(error: any) {
+		console.log("Error occured When User Repository List Page Axios Pushing");
+		//return userRepos;
 	}
 
-	let response: any[] = [];
-	let userRepos: RepositoryItem[][] = [];
+	
 	try{
-		response = await Promise.all(axiosList);
+		response = await Promise.allSettled(axiosList);
 
 		if(response?.length > 0) {
 			for(const [index, item] of response?.entries()) {
-				const parseData = cheerio.load(item.data);
-				let reposList = getRepositoryInfoFromRepositoriesTab(parseData, users[index].UserName);
-				let filterReposList = getFilterRepository(reposList, users[index].StartFrom, users[index].TotalRequiredRepos);
-				userRepos.push(filterReposList);
+				if(item?.status === "fulfilled" && item?.value?.status < 300 && item?.value?.data) {
+					const parseData = cheerio.load(item?.value?.data);
+					let reposList = getRepositoryInfoFromRepositoriesTab(parseData, users[index].UserName);
+					let filterReposList = getFilterRepository(reposList, users[index].StartFrom, users[index].TotalRequiredRepos);
+					userRepos = [...userRepos, ...filterReposList];
+				}else{
+					if(item.status === "rejected") {
+						console.log(`When ==> ${users[index].UserName} <== Repository Page Fetch Error occured => ${item.reason.message}`);
+					}
+				}
 			}
 		}
 	}catch(error: any) {
-		console.log(error);
-		console.log(error.response);
+		console.log("Error occured When User Repository List Page Promise Resolved");
 	}
 
 	axiosList = [];
-	for(let [index, userReposList] of userRepos.entries()) {
-		for(let repo of userReposList) {
-			axiosList.push(axios.get(`https://github.com/${repo.UserName}/${repo.Name}`, config));
+	
+	try{
+		for(let repo of userRepos) {
+			axiosList.push(axios.get(`https://github.com/${repo?.UserName}/${repo?.Name}`, config));
 		}
+	}catch(error: any) {
+		console.log("Error occured When User Repository Home Page Axios Pushing");
 	}
 
 	response = [];
 
 	try{
-		response = await Promise.all(axiosList);
+		response = await Promise.allSettled(axiosList);
 
 		if(response?.length > 0) {
 			for(const [index, item] of response?.entries()) {
-				const userNo = floor(index / users[0].TotalRequiredRepos);
-				const userReposNo = index % users[0].TotalRequiredRepos;
-				const parseData = cheerio.load(item.data);
-				userRepos[userNo][userReposNo].Languages = getReposLanguage(parseData, 4);
-				userRepos[userNo][userReposNo].MainBrachName = getMainBranchNameofRepos(parseData);
+				if(item?.status === "fulfilled" && item?.value?.status < 300 && item?.value?.data) {
+					const parseData = cheerio.load(item?.value?.data);
+					
+					const repositoryName = getRepositoryNameFromRepositoryHomePage(parseData);
+					const repositoryAuthorName = getRepositoryAuthorFromRepositoryHomePage(parseData);
+	
+					const reposIndex = userRepos.findIndex(element => element.Name == repositoryName && element.UserName == repositoryAuthorName);
+	
+					userRepos[reposIndex].Languages = getReposLanguage(parseData, 4);
+					userRepos[reposIndex].MainBrachName = getMainBranchNameofRepos(parseData);
+				}else{
+					if(item.status === "rejected") {
+						console.log(`When User ==> ${userRepos[index].UserName} <== of ==> ${userRepos[index].Name} <== Repository Home Page Fetch Error occured => ${item.reason.message}`);
+					}
+				}
 			}
 		}
 
-		await new Promise(r => setTimeout(r, 2000));
+	}catch(error: any){
+		console.log("Error occured When User Repository Home Page Promise Resolved");
+	}
+
+	await new Promise(r => setTimeout(r, 2000));
+
+
+	try{
 
 		axiosList = [];
 		response = [];
 
-		for(let [index, userReposList] of userRepos.entries()) {
-			for(let repo of userReposList) {
-				axiosList.push(axios.get(`https://github.com/${repo.UserName}/${repo.Name}/file-list/${repo.MainBrachName}`, config));
-			}
+		for(let repo of userRepos) {
+			axiosList.push(axios.get(`https://github.com/${repo.UserName}/${repo.Name}/file-list/${repo.MainBrachName}`, config));
 		}
+	}catch(error: any){
+		console.log("Error occured When User Repository File List Page Axios Pushing");
+	}
 
-		response = await Promise.all(axiosList);
+	try{
+
+		response = await Promise.allSettled(axiosList);
 
 		if(response?.length > 0) {
 			for(const [index, item] of response?.entries()) {
-				const userNo = floor(index / users[0].TotalRequiredRepos);
-				const userReposNo = index % users[0].TotalRequiredRepos;
-				console.log(index, userNo);
-				const parseData = cheerio.load(item.data);
-				
-				userRepos[userNo][userReposNo].CreatedDate = getReposCreatedDate(parseData);
+				if(item?.status === "fulfilled" && item?.value?.status < 300 && item?.value?.data) {
+					const parseData = cheerio.load(item?.value?.data);
+					userRepos[index].CreatedDate = getReposCreatedDate(parseData);
+				}else{
+					if(item.status === "rejected") {
+						console.log(`When User ===> ${userRepos[index].UserName} <=== of Repository ===> ${userRepos[index].Name} <=== Repository File List Page Fetch Error occured => ${item.reason.message}`);
+					}
+				}
 			}
 		}
 
 	}catch(error: any) {
-		console.log("Error Occured");
+		console.log("Error occured When User Repository File List Page Promise Resolved");
 	}
-
 
 	return userRepos;
 }
@@ -101,9 +137,11 @@ export interface TimelineReposResult extends RepositoryItem {
 	IsSecondUsersRepos ?: boolean,
 }
 
-export function modifiedTimelineRepositories(reposList: RepositoryItem[][]) {
-	let firstUserRepos = reposList[0] as TimelineReposResult[];
-	let secondUserRepos = reposList[1] as TimelineReposResult[];
+export function modifiedTimelineRepositories(reposList: RepositoryItem[], firstUserName: string, secondUserName: string) {
+	let firstUserRepos = reposList.filter((item) => item.UserName == firstUserName);
+	let secondUserRepos = reposList.filter((item) => item.UserName == secondUserName);
+
+
 
 	let reposResult: TimelineReposResult[] = [];
 
@@ -134,48 +172,6 @@ export function modifiedTimelineRepositories(reposList: RepositoryItem[][]) {
 	});
 
 	return reposResult;
-
-	// for(let repo of firstUserRepos) {
-	// 	if(repo.CreatedDate) {
-	// 		repo.CreatedYear = new Date(repo.CreatedDate).getFullYear().toString();
-	// 		repo.CreatedMonth = repo.CreatedDate.substring(0,6);
-	// 	}
-	// }
-
-	// firstUserRepos.sort((X: TimelineReposResult, Y: TimelineReposResult) => {
-	// 	if(X.CreatedDate && Y.CreatedDate) {
-	// 		return new Date(X.CreatedDate).getTime() - new Date(Y.CreatedDate).getTime();
-	// 	}else return -1;
-	// });
-
-	// for(let repo of secondUserRepos) {
-	// 	if(repo.CreatedDate) {
-	// 		repo.CreatedYear = new Date(repo.CreatedDate).getFullYear().toString();
-	// 		repo.CreatedMonth = repo.CreatedDate.substring(0,6);
-	// 	}
-	// }
-
-	// secondUserRepos.sort((X: TimelineReposResult, Y: TimelineReposResult) => {
-	// 	if(X.CreatedDate && Y.CreatedDate) {
-	// 		return new Date(X.CreatedDate).getTime() - new Date(Y.CreatedDate).getTime();
-	// 	}else return -1;
-	// });
-
-	// return [firstUserRepos, secondUserRepos];
-
-	// let currentYear = null;
-	// let i = 0, j = 0;
-	// while(i < firstUserRepos.length || j < secondUserRepos.length) {
-	// 	if(i == firstUserRepos.length) {
-
-	// 	}else if(j == secondUserRepos.length) {
-
-	// 	}else{
-	// 		if(currentYear == null) {
-
-	// 		}
-	// 	}
-	// }
 }
 
 
@@ -208,7 +204,15 @@ function getOldestDateFromDateList(dateList: any) {
 }
 
 function getMainBranchNameofRepos(parseData: any) {
-	return getData(parseData, "#branch-select-menu > summary > span.css-truncate-target")[0];
+	return clearString(getData(parseData, "#branch-select-menu > summary > span.css-truncate-target")[0]);
+}
+
+function getRepositoryNameFromRepositoryHomePage(parseData: any) {
+	return clearString(getData(parseData, "#repository-container-header > div > div > div > strong > a")[0]);
+}
+
+function getRepositoryAuthorFromRepositoryHomePage(parseData: any) {
+	return clearString(getData(parseData, "#repository-container-header > div > div > div > span.author > a")[0]);
 }
 
 

@@ -37,7 +37,7 @@ export async function findRepositoryByQuery(queryObj: SearchRepositoryConfigurat
 		try{
 			axiosList.push(axios.get(`https://github.com/${user}?tab=repositories&q=${searchText}&type=&language=${searchLanguage}&sort=`, config));
 		}catch(error: any) {
-			console.log("error occured When axios push ====> " + user);
+			console.log(`Error occured When User ==> ${user} <== Search Repository Page Axios Pushing`);
 		}
 
 		if((i + 1)%pageSearchPerApiCall === 0 || i === (users.length - 1)) {
@@ -47,32 +47,23 @@ export async function findRepositoryByQuery(queryObj: SearchRepositoryConfigurat
 
 			let response: any[] = [];
 			try{
-				response = await Promise.all(axiosList);
-			}catch(error: any) {
-				console.log(error);
-      			console.log(error.response);
-				//console.log("error occured =====> " + user);
-			}
-
-			// for(let j = 0; j< 100; j++) {
-			// 	if(response[j] && !response[j]?.status) {
-			// 		console.log(j);
-			// 	}
-			// }
-			//console.log(Object.keys(response[0].status));
-			// console.log(response[0]?.status);
-			// for(let j: number = 0; j<crawlCount; j++) {
-			// 	if(response[j]?.status !== 200) {
-			// 		console.log(`Error =========> ${i - crawlCount + j} ====== ${j}`);
-			// 	}else console.log(`Success --------> ${i - crawlCount + j} =====> ${response[j]?.status}`)
-			// }
-
-			if(response?.length > 0) {
-				for(const [index, item] of response?.entries()) {
-					const parseData = cheerio.load(item.data);
-					searchQueryResult.ReposResult = searchQueryResult.ReposResult.concat(getRepositoryInfo(parseData, users[index]));
+				response = await Promise.allSettled(axiosList);
+				if(response?.length > 0) {
+					for(const [index, item] of response?.entries()) {
+						if(item?.status === "fulfilled" && item?.value?.status < 300 && item?.value?.data) {
+							const parseData = cheerio.load(item?.value?.data);
+							searchQueryResult.ReposResult = [...searchQueryResult.ReposResult, ...getRepositoryInfo(parseData, users[index])];
+						}else{
+							if(item.status === "rejected") {
+								console.log(`When ==> ${user} <== Search Repository Page Fetch Error occured => ${item.reason.message}`);
+							}
+						}
+					}
 				}
+			}catch(error: any) {
+				console.log("Error occured When Search Repository Page Promise Resolved");
 			}
+
 
 			console.log("End Search Api");
 

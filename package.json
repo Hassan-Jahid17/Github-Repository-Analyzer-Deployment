@@ -5,8 +5,8 @@
   "main": "src/server.ts",
   "scripts": {
 	"postinstall": "tsc",
-    "start": "node dist/server.js",
-    "local": "tsc-watch --onSuccess \"node ./dist/server.js\""
+    "prod": "node dist/server.js",
+    "start": "tsc-watch --onSuccess \"node ./dist/server.js\""
   },
   "keywords": [],
   "author": "",

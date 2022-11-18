@@ -8,16 +8,6 @@ import { config } from "./config/config";
 
 const app = express();
 
-
-// Define Router
-app.use('/', router);
-
-
-app.use(express.static('build'));
-app.get('*', (req: any, res: any) => {
-	res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
-})
-
 // database connection
 dbConnect();
 
@@ -30,12 +20,20 @@ app.use(cors({
 	]
 }))
 
-
-
-
 // request parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
+// Define Router
+app.use('/', router);
+
+
+app.use(express.static('build'));
+app.get('*', (req: any, res: any) => {
+	res.sendFile(path.resolve(__dirname, '../build', 'index.html'));
+})
+
 
 // 404 not found handler
 app.use(notFoundHandler);

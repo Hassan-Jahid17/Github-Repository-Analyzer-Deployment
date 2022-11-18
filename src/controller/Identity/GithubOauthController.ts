@@ -11,6 +11,7 @@ import { getUserClaimsFromGithubUser } from '../../services/githubOauth';
 import { generateAccessToken, generateRefreshToken } from '../../services/JwtTokenService';
 import { addMinutes } from "date-fns";
 import { encrypt } from '../../services/EncryptDecrypt';
+import createHttpError from 'http-errors';
 
 
 async function githubOauthLogin(req: Request, res: Response, next: NextFunction) {
@@ -18,7 +19,7 @@ async function githubOauthLogin(req: Request, res: Response, next: NextFunction)
 	console.log("/github/callback");
 
 	const requestToken = req.query.code;
-	const redirectUrl = req.query.state;
+	const redirectUrl = req.query.state as string;
 
 	console.log(requestToken, redirectUrl);
 
@@ -38,8 +39,9 @@ async function githubOauthLogin(req: Request, res: Response, next: NextFunction)
 		
 		res.redirect(`/api/identity/github/success?token=${accessToken}&redirectUrl=${redirectUrl}`)
 	}catch(e) {
-		console.log("Error occured");
+		console.log("Error occured When Get Github AccessToken");
 		console.log(e);
+		res.redirect(redirectUrl);
 	}
 }
 
@@ -53,28 +55,30 @@ async function githubOauthLoginSuccess(req: Request, res: Response, next: NextFu
 
 	console.log(accessToken, redirectUrl);
 
+	let response;
+	try{
+		response = await axios.get(`https://api.github.com/user`, {
+			headers: {
+				Authorization: 'token ' + accessToken
+			}
+		});
+	}catch(error) {
+		console.log("Error Occured When User info Get from Github");
+		console.log(error);
+		res.redirect(redirectUrl);
+		return;
+	}
+
+	let currentUserData = response?.data;
+	console.log("currentUserData");
+	console.log(currentUserData);
+
+
+	const userClaims: TokenPayload = getUserClaimsFromGithubUser(currentUserData);
+	console.log("userClaims", userClaims);
+
+
 	try {
-
-		let response;
-		try{
-			response = await axios.get(`https://api.github.com/user`, {
-				headers: {
-					Authorization: 'token ' + accessToken
-				}
-			});
-		}catch(error) {
-			console.log(error);
-		}
-
-
-		let currentUserData = response?.data;
-		console.log("currentUserData");
-		console.log(currentUserData);
-
-
-		const userClaims: TokenPayload = getUserClaimsFromGithubUser(currentUserData);
-		console.log("userClaims", userClaims);
-
 
 		let user = await UserModel.findOne<User>({
 			UserName: userClaims.UserName,
@@ -118,6 +122,8 @@ async function githubOauthLoginSuccess(req: Request, res: Response, next: NextFu
 		
 	}catch(error) {
 		console.log(error);
+		res.redirect(redirectUrl);
+		return;
 	}
 }
 

@@ -24,8 +24,8 @@ export async function SearchReposController(req: Request, res: Response, next: N
 		return next(createHttpError(400, error.details[0].message));
 	}
 
-	let followingUserCount = await getUserGithubInfo([req.body.GithubHandle], githubAccessToken);
-	let followingUser = await getAllFollowingUser(followingUserCount, githubAccessToken);
+	let userInfo = await getUserGithubInfo([req.body.GithubHandle], githubAccessToken);
+	let followingUser = await getAllFollowingUser(userInfo, githubAccessToken);
 
 
 	let searchQuery = {
@@ -36,7 +36,7 @@ export async function SearchReposController(req: Request, res: Response, next: N
 		TotalPageSearchPerApiCall: isLoggedIn ? 200 : 60,
 		WaitBetweenApiCall: 2000,
 		MinDesireRepository: isLoggedIn ? 10 : 4,
-		TotalTimeoutForApiCall: isLoggedIn ? 15000 : 10000,
+		TotalTimeoutForApiCall: isLoggedIn ? 10000 : 8000,
 		SearchStartIndex: req.body.QuerySearchStartIndex
 	} as SearchRepositoryConfiguration;
 

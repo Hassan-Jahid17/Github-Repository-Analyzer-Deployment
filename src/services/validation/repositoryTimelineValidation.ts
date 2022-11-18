@@ -12,16 +12,6 @@ const repositoryTimelineBodyValidation = (queryObj: any) => {
 			StartFrom: Joi.number().required().min(0).label("Repo Start Index"),
 		})
 	);
-	// const schema = Joi.object([
-	// 	{
-	// 		UserName: Joi.string().required().min(1).label("Github Handle"),
-	// 		StartFrom: Joi.number().required().min(0).label("Repo Start Index"),
-	// 	},
-	// 	{
-	// 		UserName: Joi.string().required().min(1).label("Github Handle"),
-	// 		StartFrom: Joi.number().required().min(0).label("Repo Start Index"),
-	// 	}
-	// ]);
 
 	return schema.validate(queryObj);
 }

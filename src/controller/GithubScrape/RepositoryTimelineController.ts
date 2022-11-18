@@ -13,6 +13,9 @@ import { SearchRepositoryTimelineConfiguration } from '../../models/interfaces/S
 
 export async function RepositoryTimelineController(req: Request, res: Response, next: NextFunction) {
 
+	console.log("api/github/timeline/repository");
+	console.log(req.body);
+
 	let githubAccessToken = req.headers.GithubAccessToken !== undefined && req.headers.GithubAccessToken !== null ? req.headers.GithubAccessToken : null;
 	const isLoggedIn = githubAccessToken !== null;
 
@@ -46,17 +49,24 @@ export async function RepositoryTimelineController(req: Request, res: Response, 
 	] as SearchRepositoryTimelineConfiguration[];
 
 	let result = await findRepositoryOfTwoUsers(searchQuery, githubAccessToken);
-	let modifiedresult = modifiedTimelineRepositories(result);
+
+	let firstUserReposCount = result.filter((item) => item.UserName == req.body[0].UserName).length;
+	let secondUserReposCount = result.filter((item) => item.UserName == req.body[1].UserName).length;
+
+	console.log(firstUserReposCount);
+	console.log(secondUserReposCount);
+	
+	let modifiedresult = modifiedTimelineRepositories(result, req.body[0].UserName, req.body[1].UserName);
 
 	res.status(200).json({
 		message: "Fetch Successful",
 		data: modifiedresult,
-		TotalFirstUserRepoSearchDone: searchQuery[0].StartFrom + result[0].length,
-		TotalSecondUserRepoSearchDone: searchQuery[1].StartFrom + result[1].length,
-		TotalFirstUserRepoFound: result[0].length,
-		TotalSecondUserRepoFound: result[1].length,
-		HasMoreReposForFirstUser: searchQuery[0].StartFrom + result[0].length < usersInfo[0].RepositoryCount,
-		HasMoreReposForSecondUser: searchQuery[1].StartFrom + result[1].length < usersInfo[1].RepositoryCount,
+		TotalFirstUserRepoSearchDone: searchQuery[0].StartFrom + firstUserReposCount,
+		TotalSecondUserRepoSearchDone: searchQuery[1].StartFrom + secondUserReposCount,
+		TotalFirstUserRepoFound: firstUserReposCount,
+		TotalSecondUserRepoFound: secondUserReposCount,
+		HasMoreReposForFirstUser: searchQuery[0].StartFrom + firstUserReposCount < usersInfo[0].RepositoryCount,
+		HasMoreReposForSecondUser: searchQuery[1].StartFrom + secondUserReposCount < usersInfo[1].RepositoryCount,
 	});
 
 
@@ -124,15 +134,4 @@ export async function RepositoryTimelineController(req: Request, res: Response, 
 
 
 	// //res.sendStatus(200);
-}
-
-/* Get Data using html selector from parse html */
-function getData($: any, selector: string) {
-	let userList: any = [];
-
-	$(selector).each((index: number, element: any) => {
-		userList.push(element.children[0].data);
-	});
-
-	return userList;
 }
