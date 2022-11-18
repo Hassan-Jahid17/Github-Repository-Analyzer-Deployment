@@ -12,7 +12,7 @@ const router = Router();
 /* Auth Identity Related Route */
 router.use("/api/identity", authRoutes);
 router.use("/api/identity/refresh", tokenRoutes);
-router.use("/github", githubOauthRoutes);
+router.use("/api/identity/github", githubOauthRoutes);
 
 
 /* Github Scrapping Related Route */
