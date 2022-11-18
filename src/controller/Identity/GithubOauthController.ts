@@ -20,6 +20,10 @@ async function githubOauthLogin(req: Request, res: Response, next: NextFunction)
 	const requestToken = req.query.code;
 	const redirectUrl = req.query.state;
 
+	console.log(requestToken, redirectUrl);
+
+	res.sendStatus(200);
+
 
 	try {
 		const response = await axios.post(`https://github.com/login/oauth/access_token?client_id=${process.env.GITHUB_OAUTH2_CLIENT_ID}&client_secret=${process.env.GITHUB_OAUTH2_CLIENT_SECRET}&code=${requestToken}`, {
