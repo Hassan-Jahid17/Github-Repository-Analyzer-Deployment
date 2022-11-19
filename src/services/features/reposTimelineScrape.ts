@@ -168,7 +168,7 @@ export function modifiedTimelineRepositories(reposList: RepositoryItem[], firstU
 	reposResult.sort((X: TimelineReposResult, Y: TimelineReposResult) => {
 		if(X.CreatedDate && Y.CreatedDate) {
 			return new Date(X.CreatedDate).getTime() - new Date(Y.CreatedDate).getTime();
-		}else return -1;
+		}else return 1;
 	});
 
 	return reposResult;
