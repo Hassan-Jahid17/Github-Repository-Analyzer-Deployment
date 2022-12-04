@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/server.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "npm run tsc",
     "start": "node dist/server.js",
     "local": "tsc-watch --onSuccess \"node ./dist/server.js\""
   },
